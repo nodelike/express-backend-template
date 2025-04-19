@@ -1,12 +1,33 @@
 import express from "express";
 import logger from "./lib/logger.js";
 import "dotenv/config";
+import userRoutes from "./models/User/user.routes.js";
+import { errorResponse, NotFoundError } from "./lib/helpers.js";
 
 const app = express();
 
 // Middlewares
-app.use(express.json());
+app.use(
+    express.json({
+        limit: "1mb",
+        verify: (req, res, buf) => {
+            req.rawBody = buf.toString();
+        },
+        // Handle JSON parsing errors
+        reviver: (key, value) => {
+            return value;
+        },
+    })
+);
 app.use(express.urlencoded({ extended: true }));
+
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+        logger.warn("Bad JSON request:", { error: err.message, url: req.url });
+        return res.status(400).json(errorResponse("Invalid JSON payload", 400));
+    }
+    next(err);
+});
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -19,16 +40,23 @@ app.use((req, res, next) => {
 });
 
 // Routes
-// We'll import routes here as we create them
-// Example: app.use('/api/users', require('./models/User/user.routes'));
+app.use("/auth", userRoutes);
 
 // Default route
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Chronos REST API" });
 });
 
+// 404 Route Handler - Must be added before the error handling middleware
+app.use((req, res, next) => {
+    logger.warn(`404 Not Found: ${req.method} ${req.url}`);
+    const notFoundError = new NotFoundError(`Route not found: ${req.method} ${req.url}`);
+    next(notFoundError);
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
+    // Log the error
     logger.error("Application error:", {
         error: err.message,
         stack: err.stack,
@@ -36,10 +64,28 @@ app.use((err, req, res, next) => {
         method: req.method,
     });
 
-    res.status(500).json({
-        message: "Something went wrong!",
-        error: process.env.NODE_ENV === "production" ? {} : err,
-    });
+    const statusCode = err.statusCode || err.status || 500;
+    const message = err.message || "Something went wrong!";
+
+    let errorDetails = {};
+
+    if (process.env.NODE_ENV !== "production") {
+        errorDetails = {
+            stack: err.stack,
+            type: err.name || err.constructor.name,
+            ...(err.code && { code: err.code }),
+            ...(err.errors && { validationErrors: err.errors }),
+        };
+    } else {
+        if (statusCode >= 400 && statusCode < 500) {
+            errorDetails = {
+                ...(err.code && { code: err.code }),
+                ...(err.errors && { validationErrors: err.errors }),
+            };
+        }
+    }
+
+    res.status(statusCode).json(errorResponse(message, statusCode, errorDetails));
 });
 
 export default app;

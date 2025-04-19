@@ -2,7 +2,7 @@ import app from "./app.js";
 import logger from "./lib/logger.js";
 import "dotenv/config";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
     logger.info(`Server is running on port http://localhost:${PORT}`);
