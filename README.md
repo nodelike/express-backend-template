@@ -5,3 +5,4 @@
 - Custom error class
 - Logger setup
 - Strcutred & standarized API response format.
+- Utils model also setup for global configurations.
