@@ -1,0 +1,31 @@
+{
+  "name": "chronos-rest",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
+  },
+  "keywords": [
+    "express",
+    "mongodb",
+    "prisma",
+    "rest-api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "A RESTful API built with Express.js, Prisma, and MongoDB",
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prisma": "^6.6.0"
+  }
+}
